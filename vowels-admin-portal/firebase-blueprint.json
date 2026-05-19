@@ -1,0 +1,26 @@
+{
+  "entities": {
+    "student": {
+      "title": "Student",
+      "description": "A student in the school",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number", "description": "Local ID (we can use string ID for firestore but keep this for backward compatibility)" },
+        "name": { "type": "string" },
+        "fatherName": { "type": "string" },
+        "class": { "type": "string" },
+        "section": { "type": "string" },
+        "totalFee": { "type": "number" },
+        "dueFee": { "type": "number" },
+        "studentImage": { "type": "string" }
+      },
+      "required": ["name", "class", "section", "totalFee", "dueFee"]
+    }
+  },
+  "firestore": {
+    "students/{studentId}": {
+      "schema": "student",
+      "description": "The collection of students."
+    }
+  }
+}

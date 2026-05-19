@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Primitive Definition
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() { return isEmailVerified(); } // MVP: All authenticated and verified users are admins.
+
+    // 2. Validation Blueprints
+    function isValidStudent(data) {
+      return data.keys().hasAll(['id', 'name', 'class', 'section', 'totalFee', 'dueFee']) &&
+        data.id is number &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+        data.class is string && data.class.size() <= 50 &&
+        data.section is string && data.section.size() <= 50 &&
+        data.totalFee is number &&
+        data.dueFee is number &&
+        (data.get('fatherName', '') is string) &&
+        (data.get('studentImage', '') is string);
+    }
+
+    match /students/{studentId} {
+      allow list: if isAdmin();
+      allow get: if isAdmin() && isValidId(studentId);
+      
+      allow create: if isAdmin() &&
+                    isValidId(studentId) &&
+                    isValidStudent(incoming());
+
+      allow update: if isAdmin() &&
+                    isValidId(studentId) &&
+                    isValidStudent(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['name', 'fatherName', 'class', 'section', 'totalFee', 'dueFee', 'studentImage', 'id']);
+                    
+      allow delete: if isAdmin() && isValidId(studentId);
+    }
+  }
+}
